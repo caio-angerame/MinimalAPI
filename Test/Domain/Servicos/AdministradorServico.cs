@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using minimalAPI.Dominio.Servicos;
@@ -12,8 +13,11 @@ public class AdministradorServicoTest
 
   private DBContexto CriarContextoDeTeste()
   {
+    var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+    var path = Path.GetFullPath(Path.Combine(assemblyPath ?? "", "..", "..", ".."));
+
     var builder = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
+    .SetBasePath(path ?? Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddEnvironmentVariables();
 
@@ -21,7 +25,7 @@ public class AdministradorServicoTest
 
     return new DBContexto(configuration);
   }
-  
+
   [TestMethod]
   public void TestandoSalvarAdministrador()
   {
@@ -45,5 +49,27 @@ public class AdministradorServicoTest
     Assert.AreEqual("teste@teste.com", adm.Email);
     Assert.AreEqual("teste", adm.Senha);
     Assert.AreEqual("Adm", adm.Perfil);
+  }
+  
+  [TestMethod]
+  public void TestandoBuscarPorId()
+  {
+    // Arrange
+    var context = CriarContextoDeTeste();
+    context.Database.ExecuteSqlRaw("TRUNCATE TABLE Administradores");
+
+    var adm = new Administrador();
+    adm.Email = "teste@teste.com";
+    adm.Senha = "teste";
+    adm.Perfil = "Adm";
+
+    var administradorServico = new AdministradorServico(context);
+
+    // Act
+    administradorServico.Incluir(adm);
+    var admDoBanco = administradorServico.BuscarPorId(adm.Id);
+
+    // Assert
+    Assert.AreEqual(1, admDoBanco?.Id);
   }
 }
